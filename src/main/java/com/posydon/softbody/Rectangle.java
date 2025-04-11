@@ -9,9 +9,9 @@ import static org.lwjgl.opengl.GL11.GL_FALSE;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_INT;
-import static org.lwjgl.opengl.GL11.glDrawArrays;
 import static org.lwjgl.opengl.GL11.glDrawElements;
 import static org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER;
+import static org.lwjgl.opengl.GL15.GL_ELEMENT_ARRAY_BUFFER;
 import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
 import static org.lwjgl.opengl.GL15.glBindBuffer;
 import static org.lwjgl.opengl.GL15.glBufferData;
@@ -28,29 +28,29 @@ import static org.lwjgl.opengl.GL20.glGetProgrami;
 import static org.lwjgl.opengl.GL20.glLinkProgram;
 import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 
-import org.lwjgl.system.MemoryStack;
-
-public class Triangle {
+public class Rectangle {
     public static int VAO;
     public static int shaderProgram;
 
-    static {
-        		// Bind vertex array object (config box)
+    static  {
+
+		float[] vertices = new float[]{
+			0.5f,  0.5f, 0.0f,  // top right
+			0.5f, -0.5f, 0.0f,  // bottom right
+			-0.5f, -0.5f, 0.0f,  // bottom left
+			-0.5f,  0.5f, 0.0f   // top left 
+		};
+
+		int[] indices = new int[]{
+			0, 1, 3,
+			1, 2, 3
+		};
 		VAO = glGenVertexArrays();
 		glBindVertexArray(VAO);
 
-		// Bind vertex buffer object (gpu memory thing that stores object info)
 		int VBO = glGenBuffers();
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-		// Created in JVM memory
-		float[] vertices = new float[]{
-			-0.5f, -0.5f, 0.0f,
-			0.5f, -0.5f, 0.0f,
-			0.0f,  0.5f, 0.0f
-		};
-
-		// glBufferDate wants native memory pointer. So we use special stuff to leave JVM memory and allocate on native memory
 		try (MemoryStack stack = MemoryStack.stackPush()) {
 			FloatBuffer vertexBuffer = stack.mallocFloat(vertices.length);
 			vertexBuffer.put(vertices).flip();
@@ -58,7 +58,25 @@ public class Triangle {
 		} catch(Exception e) {
 			Log.err("Error allocating space for vertices and setting gl state: " + e.toString());
 		}
-		// Loading shaders from source, and compiling them
+
+		int EBO = glGenBuffers();
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+
+		try (MemoryStack stack = MemoryStack.stackPush()) {
+			IntBuffer indexBuffer = stack.mallocInt(indices.length);
+			indexBuffer.put(indices).flip();
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer, GL_STATIC_DRAW);
+		} catch(Exception e) {
+			Log.err("Error allocating space for indices and setting gl state: " + e.toString());
+		}
+
+		glVertexAttribPointer(0, 3, GL_FLOAT, false, 3*Float.BYTES, 0);
+		glEnableVertexAttribArray(0);
+
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+
 
 		String vertexShaderSource = ShaderLoaderCompiler.loadShaderFromResource("shaders/vertex_shader.glsl");
 		int vertexShader = ShaderLoaderCompiler.compileShader(vertexShaderSource, GL_VERTEX_SHADER);
@@ -82,14 +100,9 @@ public class Triangle {
 		// Delete these shaders, we've already attached them to the shaderProgram
 		glDeleteShader(vertexShader);
 		glDeleteShader(fragmentShader);
-
-		// Configure how the data going into the shaders will be "preprocessed"
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, 3*Float.BYTES, 0);
-		glEnableVertexAttribArray(0);
-		glBindVertexArray(0);
     }
 
-	public static void draw() {
-		glDrawArrays(GL_TRIANGLES, 0, 3);
-	}
+    public static void draw() {
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    }
 }
