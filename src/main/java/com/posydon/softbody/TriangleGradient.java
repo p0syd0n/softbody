@@ -47,9 +47,10 @@ public class TriangleGradient {
 
 		// Created in JVM memory
         float[] vertices = new float[]{
-            -0.5f, -0.5f, 0.0f,
-            0.5f, -0.5f, 0.0f,
-            0.0f,  0.5f, 0.0f
+        // first triangle
+        -0.9f, -0.5f, 0.0f,  // left 
+        -0.0f, -0.5f, 0.0f,  // right
+        -0.45f, 0.5f, 0.0f,  // top 
         };
 
 
@@ -90,11 +91,11 @@ public class TriangleGradient {
         glEnableVertexAttribArray(1);
 		// Loading shaders from source, and compiling them
 
-		String vertexShaderSource = ShaderLoaderCompiler.loadShaderFromResource("shaders/vertex_shader_gradient.glsl");
-		int vertexShader = ShaderLoaderCompiler.compileShader(vertexShaderSource, GL_VERTEX_SHADER);
+		String vertexShaderSource = Resources.loadShaderFromResource("shaders/vertex_shader_gradient.glsl");
+		int vertexShader = Resources.compileShader(vertexShaderSource, GL_VERTEX_SHADER);
 
-		String fragmentShaderSource = ShaderLoaderCompiler.loadShaderFromResource("shaders/fragment_shader_gradient.glsl");
-		int fragmentShader = ShaderLoaderCompiler.compileShader(fragmentShaderSource, GL_FRAGMENT_SHADER);
+		String fragmentShaderSource = Resources.loadShaderFromResource("shaders/fragment_shader_gradient.glsl");
+		int fragmentShader = Resources.compileShader(fragmentShaderSource, GL_FRAGMENT_SHADER);
 
 		// Creating the program (links shaders to each other)
 		shaderProgram = glCreateProgram();
@@ -115,6 +116,6 @@ public class TriangleGradient {
     }
 
 	public static void draw() {
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
 }

@@ -7,9 +7,21 @@ import java.nio.*;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL11.GL_FALSE;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
+import static org.lwjgl.opengl.GL11.GL_LINEAR;
+import static org.lwjgl.opengl.GL11.GL_LINEAR_MIPMAP_LINEAR;
+import static org.lwjgl.opengl.GL11.GL_NEAREST;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_BORDER_COLOR;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_MAG_FILTER;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_MIN_FILTER;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_S;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_T;
 import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_INT;
 import static org.lwjgl.opengl.GL11.glDrawElements;
+import static org.lwjgl.opengl.GL11.glTexParameterfv;
+import static org.lwjgl.opengl.GL11.glTexParameteri;
+import static org.lwjgl.opengl.GL14.GL_MIRRORED_REPEAT;
 import static org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER;
 import static org.lwjgl.opengl.GL15.GL_ELEMENT_ARRAY_BUFFER;
 import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
@@ -31,14 +43,16 @@ import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 public class Rectangle {
     public static int VAO;
     public static int shaderProgram;
+    public static int texture;
 
     static  {
 
 		float[] vertices = new float[]{
-			0.5f,  0.5f, 0.0f,  // top right
-			0.5f, -0.5f, 0.0f,  // bottom right
-			-0.5f, -0.5f, 0.0f,  // bottom left
-			-0.5f,  0.5f, 0.0f   // top left 
+            // positions          // colors           // texture coords
+            0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
+            0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+            -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+            -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
 		};
 
 		int[] indices = new int[]{
@@ -59,9 +73,19 @@ public class Rectangle {
 			Log.err("Error allocating space for vertices and setting gl state: " + e.toString());
 		}
 
+        glVertexAttribPointer(0, 9, GL_FLOAT, false, 9*Float.BYTES, 0);
+		glEnableVertexAttribArray(0);
+
+        glVertexAttribPointer(1, 9, GL_FLOAT, false, 9*Float.BYTES, 3*Float.BYTES);
+		glEnableVertexAttribArray(1);
+
+        glVertexAttribPointer(2, 9, GL_FLOAT, false, 8*Float.BYTES, 6*Float.BYTES);
+		glEnableVertexAttribArray(2);
+
 		int EBO = glGenBuffers();
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
+        
 		try (MemoryStack stack = MemoryStack.stackPush()) {
 			IntBuffer indexBuffer = stack.mallocInt(indices.length);
 			indexBuffer.put(indices).flip();
@@ -70,19 +94,18 @@ public class Rectangle {
 			Log.err("Error allocating space for indices and setting gl state: " + e.toString());
 		}
 
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, 3*Float.BYTES, 0);
-		glEnableVertexAttribArray(0);
+
 
 
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 
 
-		String vertexShaderSource = ShaderLoaderCompiler.loadShaderFromResource("shaders/vertex_shader.glsl");
-		int vertexShader = ShaderLoaderCompiler.compileShader(vertexShaderSource, GL_VERTEX_SHADER);
+		String vertexShaderSource = Resources.loadShaderFromResource("shaders/vertex_shader.glsl");
+		int vertexShader = Resources.compileShader(vertexShaderSource, GL_VERTEX_SHADER);
 
-		String fragmentShaderSource = ShaderLoaderCompiler.loadShaderFromResource("shaders/fragment_shader.glsl");
-		int fragmentShader = ShaderLoaderCompiler.compileShader(fragmentShaderSource, GL_FRAGMENT_SHADER);
+		String fragmentShaderSource = Resources.loadShaderFromResource("shaders/fragment_shader.glsl");
+		int fragmentShader = Resources.compileShader(fragmentShaderSource, GL_FRAGMENT_SHADER);
 
 		// Creating the program (links shaders to each other)
 		shaderProgram = glCreateProgram();
@@ -100,6 +123,23 @@ public class Rectangle {
 		// Delete these shaders, we've already attached them to the shaderProgram
 		glDeleteShader(vertexShader);
 		glDeleteShader(fragmentShader);
+
+        		// Do mirrored repeat on the S and T texture axis
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+		
+		// When the texture is too low resolution, use gl_nearest. (Pick the closest texel to the actual pixel)
+		// When the texture is too high resolution, use gl_linear. (Average pixels from texture)
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		float[] borderColor = new float[]{1.0f, 1.0f, 0.0f, 1.0f};
+		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);  
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		texture = Resources.loadTexture("container.png");
+        
     }
 
     public static void draw() {

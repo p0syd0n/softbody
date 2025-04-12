@@ -12,6 +12,7 @@ import static org.lwjgl.opengl.GL11.GL_UNSIGNED_INT;
 import static org.lwjgl.opengl.GL11.glDrawArrays;
 import static org.lwjgl.opengl.GL11.glDrawElements;
 import static org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER;
+import static org.lwjgl.opengl.GL15.GL_DYNAMIC_DRAW;
 import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
 import static org.lwjgl.opengl.GL15.glBindBuffer;
 import static org.lwjgl.opengl.GL15.glBufferData;
@@ -45,9 +46,10 @@ public class Triangle {
 
 		// Created in JVM memory
 		float[] vertices = new float[]{
-			-0.5f, -0.5f, 0.0f,
-			0.5f, -0.5f, 0.0f,
-			0.0f,  0.5f, 0.0f
+			// positions         // colors
+			0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   // bottom right
+			-0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // bottom left
+			0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f    // top 
 		};
 
 		// glBufferDate wants native memory pointer. So we use special stuff to leave JVM memory and allocate on native memory
@@ -56,15 +58,29 @@ public class Triangle {
 			vertexBuffer.put(vertices).flip();
 			glBufferData(GL_ARRAY_BUFFER, vertexBuffer, GL_STATIC_DRAW);
 		} catch(Exception e) {
-			Log.err("Error allocating space for vertices and setting gl state: " + e.toString());
+			Log.err("Error allocating space for vertices and sending it to GPU " + e.toString());
 		}
+
+		// Configure how the data going into the shaders will be "preprocessed"
+		glVertexAttribPointer(0, 3, GL_FLOAT, false, 6*Float.BYTES, 0);
+		glEnableVertexAttribArray(0);
+
+		glVertexAttribPointer(1, 3, GL_FLOAT, false, 6*Float.BYTES, 3*Float.BYTES);
+		glEnableVertexAttribArray(1);
+
+		float[] textureCoordinates = new float[]{
+			0.0f, 0.0f,  // lower-left corner  
+			1.0f, 0.0f,  // lower-right corner
+			0.5f, 1.0f   // top-center corner
+		};
+
 		// Loading shaders from source, and compiling them
 
-		String vertexShaderSource = ShaderLoaderCompiler.loadShaderFromResource("shaders/vertex_shader.glsl");
-		int vertexShader = ShaderLoaderCompiler.compileShader(vertexShaderSource, GL_VERTEX_SHADER);
+		String vertexShaderSource = Resources.loadShaderFromResource("shaders/vertex_shader.glsl");
+		int vertexShader = Resources.compileShader(vertexShaderSource, GL_VERTEX_SHADER);
 
-		String fragmentShaderSource = ShaderLoaderCompiler.loadShaderFromResource("shaders/fragment_shader.glsl");
-		int fragmentShader = ShaderLoaderCompiler.compileShader(fragmentShaderSource, GL_FRAGMENT_SHADER);
+		String fragmentShaderSource = Resources.loadShaderFromResource("shaders/fragment_shader.glsl");
+		int fragmentShader = Resources.compileShader(fragmentShaderSource, GL_FRAGMENT_SHADER);
 
 		// Creating the program (links shaders to each other)
 		shaderProgram = glCreateProgram();
@@ -82,11 +98,6 @@ public class Triangle {
 		// Delete these shaders, we've already attached them to the shaderProgram
 		glDeleteShader(vertexShader);
 		glDeleteShader(fragmentShader);
-
-		// Configure how the data going into the shaders will be "preprocessed"
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, 3*Float.BYTES, 0);
-		glEnableVertexAttribArray(0);
-		glBindVertexArray(0);
     }
 
 	public static void draw() {

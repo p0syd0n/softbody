@@ -1,21 +1,39 @@
 package com.posydon.softbody;
 
-import static org.lwjgl.opengl.GL11.GL_FALSE;
+import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL20.GL_COMPILE_STATUS;
 import static org.lwjgl.opengl.GL20.glCompileShader;
 import static org.lwjgl.opengl.GL20.glCreateShader;
 import static org.lwjgl.opengl.GL20.glGetShaderInfoLog;
 import static org.lwjgl.opengl.GL20.glGetShaderi;
+import static org.lwjgl.opengl.GL20.glGetUniformLocation;
 import static org.lwjgl.opengl.GL20.glShaderSource;
+import static org.lwjgl.opengl.GL20.glUniform1f;
+import static org.lwjgl.opengl.GL20.glUniform1i;
+import static org.lwjgl.opengl.GL30.glGenerateMipmap;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 
-public class ShaderLoaderCompiler {
+import javax.imageio.ImageIO;
+
+import org.lwjgl.BufferUtils;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.stb.STBImage;
+import org.lwjgl.system.MemoryStack;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+
+
+
+public class Resources {
 	public static String loadShaderFromResource(String filename) {
-		InputStream inputStream = ShaderLoaderCompiler.class.getClassLoader().getResourceAsStream(filename);
+		InputStream inputStream = Resources.class.getClassLoader().getResourceAsStream(filename);
 
 		if (inputStream == null) {
 			throw new RuntimeException("Shader file not found: "+filename);
@@ -44,5 +62,17 @@ public class ShaderLoaderCompiler {
 			throw new RuntimeException("Shader Compilation Failed");
 		}
 		return shader;
+	}
+
+	public static void setUniformf(float value, String uniformName, int currentShaderActive) {
+		glUniform1f(glGetUniformLocation(currentShaderActive, uniformName), value);
+	}
+
+	public static void setUniformb(boolean value, String uniformName, int currentShaderActive) {
+		glUniform1i(glGetUniformLocation(currentShaderActive, uniformName), value?1:0);
+	}
+
+	public static void setUniformi(int value, String uniformName, int currentShaderActive) {
+		glUniform1i(glGetUniformLocation(currentShaderActive, uniformName), value);
 	}
 }
