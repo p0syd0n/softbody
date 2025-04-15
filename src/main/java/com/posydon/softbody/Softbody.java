@@ -5,13 +5,22 @@ import org.lwjgl.opengl.*;
 import static org.lwjgl.glfw.GLFW.*;
 //import static org.lwjgl.opengl.*;
 import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
+import static org.lwjgl.opengl.GL11.glClear;
+import static org.lwjgl.opengl.GL11.glClearColor;
+import static org.lwjgl.opengl.GL11.glEnable;
+import static org.lwjgl.opengl.GL11.glGetInteger;
+import static org.lwjgl.opengl.GL11.glViewport;
 //import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.GL_QUERY_RESULT;
 import static org.lwjgl.opengl.GL15.glBeginQuery;
 import static org.lwjgl.opengl.GL15.glEndQuery;
 import static org.lwjgl.opengl.GL15.glGenQueries;
 //import static org.lwjgl.opengl.GL20.*;
-
+import static org.lwjgl.opengl.GL20.GL_MAX_VERTEX_ATTRIBS;
+import static org.lwjgl.opengl.GL20.glGetUniformLocation;
+import static org.lwjgl.opengl.GL20.glUniform1f;
+import static org.lwjgl.opengl.GL20.glUseProgram;
 import static org.lwjgl.system.MemoryUtil.*;
 
 public class Softbody {
@@ -24,6 +33,9 @@ public class Softbody {
 	private long nanoSecondsCPU = 0;
 
 	public int run() {
+		long lastFrameTime = System.nanoTime();
+
+		
 		glfwInit();
 		Log.info("Initialized");
 		// opengl version compatability things
@@ -50,6 +62,7 @@ public class Softbody {
 		Log.info("Set viewport");
 		Log.info(glGetInteger(GL_MAX_VERTEX_ATTRIBS)+"");
 		glEnable(0x8642); // GL_PROGRAM_POINT_SIZE?
+		Log.info("Set point size");
 		
 		// Wireframes
 		// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); 
@@ -69,7 +82,10 @@ public class Softbody {
 				glViewport(0, 0, width, height);
 			}
 		});
+		Log.info("Creating particle system");
 
+		new ParticleSystem();
+		Log.info("Created particle system");
 
 
 
@@ -91,10 +107,8 @@ public class Softbody {
 			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
 
-			glUseProgram(Particle.shaderProgram);
-			glBindVertexArray(Particle.VAO);
-			//Resources.setUniformf((float)((Math.sin(glfwGetTime())/2.0f)+0.5f), "horizontal_offset", Rectangle.shaderProgram);
-			Particle.draw();
+
+			ParticleSystem.draw();
 
 
 			glfwPollEvents();
@@ -108,6 +122,15 @@ public class Softbody {
 			long end = System.nanoTime();
 			long duration = end - start; // nanoseconds
 			nanoSecondsCPU += duration;
+
+			long now = end;
+			
+			float deltaTime = (now - lastFrameTime) / 1_000_000_000.0f;
+			lastFrameTime = now;
+
+			int deltaTimeLoc = glGetUniformLocation(ParticleSystem.computeShader, "deltaTime");
+			glUseProgram(ParticleSystem.computeShader);
+			glUniform1f(deltaTimeLoc, deltaTime);
 			iterations ++;
 		}
 
